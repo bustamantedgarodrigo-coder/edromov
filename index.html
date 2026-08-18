@@ -43,6 +43,19 @@
     .animate-pulse-fast {
       animation: pulse-fast 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
+    
+    /* Ocultar la barra de desplazamiento horizontal manteniendo la funcionalidad de scroll */
+    .no-scrollbar::-webkit-scrollbar,
+    .scrollbar-none::-webkit-scrollbar {
+      display: none !important;
+      width: 0 !important;
+      height: 0 !important;
+    }
+    .no-scrollbar,
+    .scrollbar-none {
+      -ms-overflow-style: none !important;  /* IE y Edge */
+      scrollbar-width: none !important;  /* Firefox */
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
@@ -320,6 +333,14 @@
       searchInput.addEventListener('input', (e) => {
         currentSearch = e.target.value.toLowerCase().trim();
         renderMovies();
+      });
+
+      // Permite desplazar la lista de categorías horizontalmente usando la rueda del ratón
+      filtersContainer.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          filtersContainer.scrollLeft += e.deltaY;
+        }
       });
 
       // Carrito Event Listeners
