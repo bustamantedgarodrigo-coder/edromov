@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catálogo de Películas</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts & Lucide Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    /* Skeleton animation */
+    @keyframes pulse-fast {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .animate-pulse-fast {
+      animation: pulse-fast 1.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
+
+  <!-- Header & Config Banner -->
+  <header class="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-md border-b border-slate-800/80 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        
+        <!-- Logo / Title -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <i data-lucide="film" class="w-6 h-6 text-slate-950"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              CineStream <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Catálogo</span>
+            </h1>
+            <p class="text-xs text-slate-400">Pide tus películas favoritas directamente por WhatsApp</p>
+          </div>
+        </div>
+
+        <!-- Search Bar & Config Modal Trigger -->
+        <div class="flex items-center gap-3 w-full md:w-auto">
+          <div class="relative flex-1 md:w-72">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            <input 
+              type="text" 
+              id="searchInput"
+              placeholder="Buscar película..." 
+              class="w-full pl-9 pr-4 py-2 text-sm bg-slate-800/80 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition"
+            >
+          </div>
+
+          <!-- Botón de Carrito de Compras -->
+          <button 
+            id="cartBtn"
+            title="Ver Carrito de Pedidos"
+            class="relative p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 font-medium transition flex items-center justify-center shrink-0"
+          >
+            <i data-lucide="shopping-cart" class="w-5 h-5"></i>
+            <span id="cartBadge" class="absolute -top-1.5 -right-1.5 bg-emerald-500 text-slate-950 font-extrabold text-[10px] min-w-[20px] h-[20px] px-1 rounded-full flex items-center justify-center shadow-lg border border-slate-900 hidden">
+              0
+            </span>
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Filters Bar -->
+    <section class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+      <div class="flex items-center gap-2 overflow-x-auto w-full pb-2 sm:pb-0 scrollbar-none" id="filtersContainer">
+        <!-- Dynamic filter buttons will render here -->
+      </div>
+      <div class="text-xs text-slate-400 shrink-0" id="movieCount">
+        Cargando películas...
+      </div>
+    </section>
+
+    <!-- Movies Grid -->
+    <section>
+      <!-- Loading Skeletons -->
+      <div id="loadingGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+        <!-- 12 skeleton items -->
+        <script>
+          document.write(Array(12).fill(0).map(() => `
+            <div class="bg-slate-900 border border-slate-800/80 rounded-2xl overflow-hidden animate-pulse-fast">
+              <div class="aspect-[2/3] bg-slate-800"></div>
+              <div class="p-3 space-y-2">
+                <div class="h-3 bg-slate-800 rounded w-1/2"></div>
+                <div class="h-4 bg-slate-800 rounded w-3/4"></div>
+                <div class="h-8 bg-slate-800 rounded-xl mt-3"></div>
+              </div>
+            </div>
+          `).join(''));
+        </script>
+      </div>
+
+      <!-- Error State -->
+      <div id="errorState" class="hidden text-center py-16 space-y-4 max-w-md mx-auto">
+        <div class="w-16 h-16 bg-red-500/10 border border-red-500/20 text-red-400 rounded-2xl flex items-center justify-center mx-auto">
+          <i data-lucide="alert-circle" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-lg font-bold text-white">No se pudo cargar la base de datos</h3>
+        <p class="text-xs text-slate-400 leading-relaxed" id="errorMessage">
+          Asegúrate de que tu planilla de Google Sheets esté configurada como pública ("Cualquier persona con el enlace puede ver") y que el ID sea correcto.
+        </p>
+        <button 
+          onclick="loadMovies()"
+          class="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl transition"
+        >
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i> Reintentar
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden text-center py-16 space-y-4">
+        <div class="w-16 h-16 bg-slate-800 text-slate-500 rounded-2xl flex items-center justify-center mx-auto">
+          <i data-lucide="clapperboard" class="w-8 h-8"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-slate-300">No se encontraron películas</h3>
+        <p class="text-xs text-slate-500">Prueba ajustando los filtros o el término de búsqueda.</p>
+      </div>
+
+      <!-- Movies Grid Container -->
+      <div id="moviesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6">
+        <!-- Rendered movie cards -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 py-6 mt-auto bg-slate-950/60">
+    <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500 space-y-1">
+      <p>Catálogo de Películas conectado a Google Sheets API v4 (GViz Query)</p>
+      <p>Desarrollado para uso local y despliegue simple en GitHub Pages</p>
+    </div>
+  </footer>
+
+  <!-- Shopping Cart Drawer Modal -->
+  <div id="cartModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex justify-end hidden">
+    <div class="bg-slate-900 border-l border-slate-800 max-w-md w-full h-full flex flex-col justify-between shadow-2xl animate-in slide-in-from-right duration-300">
+      
+      <!-- Cart Header -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-base">Mi Carrito de Pedidos</h3>
+            <p id="cartItemSummary" class="text-xs text-slate-400">0 películas seleccionadas</p>
+          </div>
+        </div>
+        <button id="closeCartModal" class="p-2 text-slate-400 hover:text-white transition rounded-lg hover:bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Cart Empty State -->
+      <div id="cartEmptyState" class="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3">
+        <div class="w-16 h-16 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center text-slate-500">
+          <i data-lucide="shopping-cart" class="w-8 h-8"></i>
+        </div>
+        <h4 class="text-sm font-semibold text-slate-300">Tu carrito está vacío</h4>
+        <p class="text-xs text-slate-500 max-w-xs leading-relaxed">Explora el catálogo y presiona <strong>"Agregar al carrito"</strong> en tus películas favoritas para armar tu pedido.</p>
+      </div>
+
+      <!-- Cart Items List (Scrollable) -->
+      <div id="cartItemsList" class="flex-1 overflow-y-auto p-4 space-y-3 hidden">
+        <!-- Dynamic Cart Items Rendered Here -->
+      </div>
+
+      <!-- Cart Footer & Checkout -->
+      <div id="cartFooter" class="p-5 border-t border-slate-800 bg-slate-950/90 space-y-4 hidden">
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-slate-400 font-medium">Total Estimado:</span>
+          <span id="cartTotalPrice" class="text-xl font-extrabold text-emerald-400">$0</span>
+        </div>
+
+        <div class="space-y-2">
+          <button 
+            id="sendWhatsAppOrderBtn"
+            class="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2.5 transition active:scale-[0.99]"
+          >
+            <i data-lucide="message-circle" class="w-5 h-5"></i>
+            <span>Finalizar Pedido por WhatsApp</span>
+          </button>
+
+          <button 
+            id="clearCartBtn"
+            class="w-full py-2 px-3 bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-red-400 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-1.5"
+          >
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Vaciar Carrito</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="cartToast" class="fixed bottom-6 right-6 z-50 bg-slate-900 border border-emerald-500/40 text-emerald-300 px-4 py-3 rounded-2xl shadow-2xl shadow-black/80 flex items-center gap-3 transition-all duration-300 transform translate-y-20 opacity-0 pointer-events-none">
+    <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+      <i data-lucide="check" class="w-5 h-5"></i>
+    </div>
+    <div class="text-xs">
+      <span class="font-bold text-white block" id="toastTitle">Película agregada</span>
+      <span class="text-slate-400" id="toastSubtitle">Se añadió a tu carrito de pedidos</span>
+    </div>
+  </div>
+
+  <!-- JavaScript Logic -->
+  <script>
+    /**
+     * Extrae de forma limpia el ID de la hoja de cálculo,
+     * incluso si el usuario pegó la URL completa de Google Sheets.
+     */
+    function extractSheetId(input) {
+      if (!input) return '';
+      const trimmed = input.trim();
+      const match = trimmed.match(/\/d\/([a-zA-Z0-9-_]+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+      return trimmed;
+    }
+
+    /**
+     * Limpia el número de teléfono removiendo +, espacios, guiones
+     */
+    function sanitizePhone(phoneInput) {
+      if (!phoneInput) return '';
+      return phoneInput.replace(/[^0-9]/g, '');
+    }
+
+    /**
+     * CONFIGURACIÓN PRINCIPAL DE TU CATÁLOGO
+     * Reemplaza aquí tu ID de Google Sheets o tu número de WhatsApp si alguna vez necesitas cambiarlos.
+     */
+    const CONFIG = {
+      // ID de tu planilla de Google Sheets
+      sheetId: '13gruHN-Rq_4UGfHStd-22rT8BKs09dSD5cFyaZdbGec',
+      // Número de teléfono para recibir los pedidos por WhatsApp (con código de país, sin +)
+      phone: '5491122334455'
+    };
+
+    // Estado global de películas, filtros y Carrito
+    let moviesData = [];
+    let activeFilter = 'Todos';
+    let currentSearch = '';
+    let cart = JSON.parse(localStorage.getItem('movie_cart') || '[]');
+
+    // Referencias DOM
+    const loadingGrid = document.getElementById('loadingGrid');
+    const moviesGrid = document.getElementById('moviesGrid');
+    const errorState = document.getElementById('errorState');
+    const errorMessage = document.getElementById('errorMessage');
+    const emptyState = document.getElementById('emptyState');
+    const filtersContainer = document.getElementById('filtersContainer');
+    const movieCount = document.getElementById('movieCount');
+    const searchInput = document.getElementById('searchInput');
+
+    // Referencias DOM del Carrito
+    const cartBtn = document.getElementById('cartBtn');
+    const cartBadge = document.getElementById('cartBadge');
+    const cartModal = document.getElementById('cartModal');
+    const closeCartModal = document.getElementById('closeCartModal');
+    const cartEmptyState = document.getElementById('cartEmptyState');
+    const cartItemsList = document.getElementById('cartItemsList');
+    const cartFooter = document.getElementById('cartFooter');
+    const cartItemSummary = document.getElementById('cartItemSummary');
+    const cartTotalPrice = document.getElementById('cartTotalPrice');
+    const clearCartBtn = document.getElementById('clearCartBtn');
+    const sendWhatsAppOrderBtn = document.getElementById('sendWhatsAppOrderBtn');
+    const cartToast = document.getElementById('cartToast');
+    const toastTitle = document.getElementById('toastTitle');
+    const toastSubtitle = document.getElementById('toastSubtitle');
+
+    // Inicialización
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadMovies();
+      renderCart();
+
+      // Event Listeners
+      searchInput.addEventListener('input', (e) => {
+        currentSearch = e.target.value.toLowerCase().trim();
+        renderMovies();
+      });
+
+      // Carrito Event Listeners
+      cartBtn.addEventListener('click', openCartModal);
+      closeCartModal.addEventListener('click', closeCartModalFunc);
+      clearCartBtn.addEventListener('click', clearCart);
+      sendWhatsAppOrderBtn.addEventListener('click', sendCartToWhatsApp);
+    });
+
+    function openCartModal() {
+      renderCart();
+      cartModal.classList.remove('hidden');
+    }
+
+    function closeCartModalFunc() {
+      cartModal.classList.add('hidden');
+    }
+
+    // Configurar objeto global google.visualization.Query para interceptar respuesta de Google Sheets sin sufrir bloqueos CORS
+    window.google = window.google || {};
+    window.google.visualization = window.google.visualization || {};
+    window.google.visualization.Query = {
+      setResponse: function(parsedData) {
+        if (window._gvizCallback) {
+          window._gvizCallback(parsedData);
+          window._gvizCallback = null;
+        }
+      }
+    };
+
+    /**
+     * Carga de datos de Google Sheets sin restricciones CORS (vía script tag dinámico)
+     */
+    function fetchGvizData(sheetId) {
+      return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          if (window._gvizCallback) {
+            window._gvizCallback = null;
+            reject(new Error("Tiempo de espera agotado al conectar con Google Sheets."));
+          }
+        }, 8000);
+
+        window._gvizCallback = (parsedData) => {
+          clearTimeout(timeout);
+          if (!parsedData || parsedData.status !== 'ok') {
+            reject(new Error("La planilla no devolvió una respuesta válida. Asegúrate de que esté compartida de forma pública."));
+          } else {
+            resolve(parsedData);
+          }
+        };
+
+        const existingScript = document.getElementById('gviz-jsonp-script');
+        if (existingScript) existingScript.remove();
+
+        const script = document.createElement('script');
+        script.id = 'gviz-jsonp-script';
+        script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&t=${Date.now()}`;
+        script.onerror = () => {
+          clearTimeout(timeout);
+          window._gvizCallback = null;
+          reject(new Error("No se pudo conectar a Google Sheets. Verifica tu conexión o que el enlace sea correcto."));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    /**
+     * Cargar y procesar películas
+     */
+    async function loadMovies() {
+      showLoading(true);
+      errorState.classList.add('hidden');
+      emptyState.classList.add('hidden');
+
+      const cleanSheetId = extractSheetId(CONFIG.sheetId);
+
+      try {
+        const gvizData = await fetchGvizData(cleanSheetId);
+        moviesData = parseGVizData(gvizData);
+
+        buildFilters();
+        renderMovies();
+      } catch (err) {
+        console.error("Error al obtener los datos de Google Sheets:", err);
+        showLoading(false);
+        errorMessage.innerText = `Ocurrió un problema al cargar los datos: ${err.message}. Verifica que la planilla de Google Sheets esté configurada como pública ("Cualquier persona con el enlace - Lector").`;
+        errorState.classList.remove('hidden');
+      }
+    }
+
+    /**
+     * Mapea el objeto JSON recibido de Google Sheets GViz
+     * Col B: Título, Col C: Categoría, Col D: Tipo, Col E: Portada, Col F: Precio
+     */
+    function parseGVizData(parsed) {
+      const rows = parsed.table?.rows || [];
+
+      return rows.map((row, idx) => {
+        const c = row.c || [];
+        
+        // Extraer valor de celda con respaldo seguro (prefiere valor formateado f, luego v)
+        const getVal = (colIndex) => {
+          if (!c[colIndex]) return '';
+          const cell = c[colIndex];
+          if (cell.f !== undefined && cell.f !== null) return String(cell.f).trim();
+          if (cell.v !== undefined && cell.v !== null) return String(cell.v).trim();
+          return '';
+        };
+
+        const title = getVal(1);
+        const category = getVal(2);
+        const type = getVal(3);
+        const cover = getVal(4);
+        const priceVal = getVal(5);
+
+        // Formatear precio adecuadamente si es numérico puro o ya viene formateado
+        let price = priceVal;
+        if (priceVal && !isNaN(priceVal)) {
+          price = `$${Number(priceVal).toLocaleString('es-AR')}`;
+        }
+
+        return {
+          id: idx,
+          title: title || 'Sin Título',
+          category: category || 'Sin Categoría',
+          type: type || 'En Stock / Catálogo',
+          cover: cover || 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=600&auto=format&fit=crop',
+          price: price
+        };
+      }).filter(m => m.title !== 'Sin Título' && m.title.toLowerCase() !== 'título' && m.title.toLowerCase() !== 'titulo');
+    }
+
+    /**
+     * Construir botones de filtro dinámicamente según categorías y tipos disponibles
+     */
+    function buildFilters() {
+      // Categorías estándar solicitadas + dinámicas extraídas del sheet
+      const baseFilters = ['Todos', 'En Stock / Catálogo', 'Bajo Pedido'];
+      
+      // Obtener categorías únicas de las películas
+      const customCategories = new Set();
+      moviesData.forEach(m => {
+        if (m.category && !baseFilters.includes(m.category)) {
+          customCategories.add(m.category);
+        }
+      });
+
+      const allFilters = [...baseFilters, ...Array.from(customCategories)];
+
+      filtersContainer.innerHTML = allFilters.map(filter => {
+        const isActive = activeFilter === filter;
+        const activeClasses = isActive 
+          ? 'bg-emerald-500 text-slate-950 font-bold border-emerald-400 shadow-md shadow-emerald-500/20' 
+          : 'bg-slate-800/90 text-slate-300 border-slate-700/80 hover:bg-slate-700 hover:text-white';
+        
+        return `
+          <button 
+            onclick="setFilter('${filter}')"
+            class="px-3.5 py-1.5 text-xs rounded-xl border transition-all whitespace-nowrap ${activeClasses}"
+          >
+            ${filter}
+          </button>
+        `;
+      }).join('');
+    }
+
+    function setFilter(filterName) {
+      activeFilter = filterName;
+      buildFilters();
+      renderMovies();
+    }
+
+    /**
+     * Renderizar la grilla autoadaptable de películas
+     */
+    function renderMovies() {
+      showLoading(false);
+
+      // Filtrado por categoría / tipo y por buscador
+      const filtered = moviesData.filter(movie => {
+        // Coincidencia con Filtro de Botón
+        let matchesFilter = true;
+        if (activeFilter === 'En Stock / Catálogo') {
+          matchesFilter = movie.type.toLowerCase().includes('stock') || movie.type.toLowerCase().includes('catálogo') || movie.type.toLowerCase().includes('catalogo');
+        } else if (activeFilter === 'Bajo Pedido') {
+          matchesFilter = movie.type.toLowerCase().includes('pedido');
+        } else if (activeFilter !== 'Todos') {
+          matchesFilter = movie.category === activeFilter || movie.type === activeFilter;
+        }
+
+        // Coincidencia con Buscador
+        let matchesSearch = true;
+        if (currentSearch) {
+          matchesSearch = movie.title.toLowerCase().includes(currentSearch) ||
+                          movie.category.toLowerCase().includes(currentSearch) ||
+                          movie.type.toLowerCase().includes(currentSearch);
+        }
+
+        return matchesFilter && matchesSearch;
+      });
+
+      // Actualizar contador
+      movieCount.textContent = `Mostrando ${filtered.length} de ${moviesData.length} películas`;
+
+      if (filtered.length === 0) {
+        moviesGrid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+
+      moviesGrid.innerHTML = filtered.map(movie => {
+        const isBajoPedido = movie.type.toLowerCase().includes('pedido');
+        const badgeColor = isBajoPedido 
+          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' 
+          : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+
+        const whatsAppUrl = formatWhatsAppUrl(movie.title, movie.price);
+
+        return `
+          <div class="group bg-slate-900/90 border border-slate-800/80 hover:border-slate-700 rounded-2xl overflow-hidden flex flex-col transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-black/40">
+            
+            <!-- Portada de la Película -->
+            <div class="relative aspect-[2/3] w-full overflow-hidden bg-slate-950">
+              <img 
+                src="${movie.cover}" 
+                alt="${movie.title}"
+                loading="lazy"
+                referrerpolicy="no-referrer"
+                onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=600&auto=format&fit=crop';"
+                class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+              
+              <!-- Badge Tipo/Estado -->
+              <span class="absolute top-2.5 left-2.5 px-2 py-0.5 text-[10px] font-semibold rounded-full border backdrop-blur-md ${badgeColor}">
+                ${movie.type}
+              </span>
+
+              <!-- Overlay Gradient -->
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
+              
+              ${movie.price ? `
+                <span class="absolute bottom-2.5 right-2.5 px-2 py-1 text-xs font-bold bg-slate-900/90 border border-slate-700/80 rounded-lg text-emerald-400 shadow-md">
+                  ${movie.price}
+                </span>
+              ` : ''}
+            </div>
+
+            <!-- Información -->
+            <div class="p-3.5 flex flex-col flex-1 justify-between space-y-3">
+              <div>
+                <span class="text-[11px] font-medium text-slate-400 uppercase tracking-wider block mb-1">
+                  ${movie.category}
+                </span>
+                <h3 class="font-bold text-slate-100 text-sm leading-snug line-clamp-2 group-hover:text-emerald-400 transition-colors">
+                  ${movie.title}
+                </h3>
+              </div>
+
+              <!-- Botones de Acción (Agregar al Carrito + Pedido Rápido WhatsApp) -->
+              <div class="flex items-center gap-2">
+                <button 
+                  onclick="addToCart('${movie.id}')"
+                  class="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow-md shadow-emerald-500/10 hover:shadow-emerald-500/20 transition-all active:scale-[0.98]"
+                >
+                  <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i>
+                  <span>Agregar</span>
+                </button>
+
+                <a 
+                  href="${whatsAppUrl}" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Pedir solo esta película directamente por WhatsApp"
+                  class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-emerald-400 rounded-xl border border-slate-700/80 transition flex items-center justify-center shrink-0"
+                >
+                  <i data-lucide="message-circle" class="w-4 h-4"></i>
+                </a>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    /**
+     * Formateador de enlace para WhatsApp de película individual
+     */
+    function formatWhatsAppUrl(title, price) {
+      const priceText = price ? ` (${price})` : '';
+      const cleanPhone = sanitizePhone(CONFIG.phone);
+      const text = `¡Hola! Me interesa encargar la película: "${title}"${priceText}. ¿Me podrían dar más información?`;
+      const encodedText = encodeURIComponent(text);
+      return `https://wa.me/${cleanPhone}?text=${encodedText}`;
+    }
+
+    function showLoading(isLoading) {
+      if (isLoading) {
+        loadingGrid.classList.remove('hidden');
+        moviesGrid.classList.add('hidden');
+      } else {
+        loadingGrid.classList.add('hidden');
+        moviesGrid.classList.remove('hidden');
+      }
+    }
+
+    /**
+     * GESTIÓN DEL CARRITO DE COMPRAS
+     */
+    function getNumericPrice(priceStr) {
+      if (!priceStr) return 0;
+      const cleaned = String(priceStr).replace(/[^0-9]/g, '');
+      return cleaned ? parseInt(cleaned, 10) : 0;
+    }
+
+    function addToCart(id) {
+      const movie = moviesData.find(m => String(m.id) === String(id));
+      if (!movie) return;
+
+      const existingItem = cart.find(item => String(item.id) === String(id));
+      if (existingItem) {
+        existingItem.quantity += 1;
+      } else {
+        cart.push({
+          id: movie.id,
+          title: movie.title,
+          category: movie.category,
+          type: movie.type,
+          cover: movie.cover,
+          price: movie.price,
+          numericPrice: getNumericPrice(movie.price),
+          quantity: 1
+        });
+      }
+
+      saveCart();
+      renderCart();
+      showToast(`🍿 ¡${movie.title}!`, "Se agregó a tu carrito de pedidos");
+    }
+
+    function updateCartQuantity(id, delta) {
+      const item = cart.find(i => String(i.id) === String(id));
+      if (!item) return;
+
+      item.quantity += delta;
+      if (item.quantity <= 0) {
+        cart = cart.filter(i => String(i.id) !== String(id));
+      }
+
+      saveCart();
+      renderCart();
+    }
+
+    function removeFromCart(id) {
+      cart = cart.filter(i => String(i.id) !== String(id));
+      saveCart();
+      renderCart();
+    }
+
+    function clearCart() {
+      cart = [];
+      saveCart();
+      renderCart();
+    }
+
+    function saveCart() {
+      localStorage.setItem('movie_cart', JSON.stringify(cart));
+    }
+
+    function showToast(title, subtitle) {
+      toastTitle.textContent = title;
+      toastSubtitle.textContent = subtitle;
+      cartToast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      cartToast.classList.add('translate-y-0', 'opacity-100');
+
+      setTimeout(() => {
+        cartToast.classList.remove('translate-y-0', 'opacity-100');
+        cartToast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+
+    function renderCart() {
+      const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+      // Actualizar badge del header
+      if (totalQuantity > 0) {
+        cartBadge.textContent = totalQuantity;
+        cartBadge.classList.remove('hidden');
+      } else {
+        cartBadge.classList.add('hidden');
+      }
+
+      // Actualizar resumen del drawer
+      cartItemSummary.textContent = `${totalQuantity} película${totalQuantity === 1 ? '' : 's'} seleccionada${totalQuantity === 1 ? '' : 's'}`;
+
+      if (cart.length === 0) {
+        cartEmptyState.classList.remove('hidden');
+        cartItemsList.classList.add('hidden');
+        cartFooter.classList.add('hidden');
+        return;
+      }
+
+      cartEmptyState.classList.add('hidden');
+      cartItemsList.classList.remove('hidden');
+      cartFooter.classList.remove('hidden');
+
+      let totalPriceNum = 0;
+
+      cartItemsList.innerHTML = cart.map(item => {
+        const subtotal = item.numericPrice * item.quantity;
+        totalPriceNum += subtotal;
+
+        const formattedSubtotal = item.numericPrice 
+          ? `$${subtotal.toLocaleString('es-AR')}` 
+          : (item.price || 'Consultar');
+
+        return `
+          <div class="flex items-center gap-3 p-3 bg-slate-800/80 border border-slate-700/80 rounded-2xl">
+            <img 
+              src="${item.cover}" 
+              alt="${item.title}"
+              referrerpolicy="no-referrer"
+              onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?q=80&w=600&auto=format&fit=crop';"
+              class="w-12 h-16 object-cover rounded-xl shrink-0"
+            />
+            <div class="flex-1 min-w-0">
+              <h4 class="font-bold text-slate-100 text-xs truncate mb-0.5">${item.title}</h4>
+              <span class="text-[10px] text-slate-400 block mb-1.5">${item.category} • ${item.price || 'S/P'}</span>
+              
+              <div class="flex items-center justify-between">
+                <!-- Controles de Cantidad -->
+                <div class="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-0.5">
+                  <button onclick="updateCartQuantity('${item.id}', -1)" class="text-slate-400 hover:text-white p-0.5 transition">
+                    <i data-lucide="minus" class="w-3 h-3"></i>
+                  </button>
+                  <span class="text-xs font-bold text-emerald-400 w-4 text-center">${item.quantity}</span>
+                  <button onclick="updateCartQuantity('${item.id}', 1)" class="text-slate-400 hover:text-white p-0.5 transition">
+                    <i data-lucide="plus" class="w-3 h-3"></i>
+                  </button>
+                </div>
+
+                <span class="text-xs font-extrabold text-white">${formattedSubtotal}</span>
+              </div>
+            </div>
+
+            <button onclick="removeFromCart('${item.id}')" class="p-1.5 text-slate-500 hover:text-red-400 transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      cartTotalPrice.textContent = totalPriceNum > 0 
+        ? `$${totalPriceNum.toLocaleString('es-AR')}` 
+        : 'Por consultar';
+
+      lucide.createIcons();
+    }
+
+    function sendCartToWhatsApp() {
+      if (cart.length === 0) return;
+
+      let text = `¡Hola! Quisiera realizar el siguiente pedido:\n\n`;
+      text += `🎬 *LISTA DE PELÍCULAS:*\n`;
+
+      let totalNum = 0;
+      cart.forEach((item, idx) => {
+        const itemSubtotal = item.numericPrice ? item.numericPrice * item.quantity : 0;
+        totalNum += itemSubtotal;
+        const priceFormatted = item.price ? ` (${item.price} c/u)` : '';
+        text += `${idx + 1}. *${item.title}* (x${item.quantity})${priceFormatted}\n`;
+      });
+
+      if (totalNum > 0) {
+        text += `\n💰 *TOTAL ESTIMADO:* $${totalNum.toLocaleString('es-AR')}\n`;
+      }
+
+      text += `\n¿Me podrías confirmar la disponibilidad y los pasos para el pago/envío? ¡Muchas gracias!`;
+
+      const cleanPhone = sanitizePhone(CONFIG.phone);
+      const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+  </script>
+</body>
+</html>
